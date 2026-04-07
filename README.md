@@ -113,7 +113,30 @@ To keep the application secure, the database rules prevent unauthorized edits. Y
    - `iiif_url` (string): (Provide a valid IIIF info.json URL or Manifest, e.g., `https://www.e-rara.ch/i3f/v20/28108722/info.json`)
    - `title` (string): "First Sample Image"
 
-### Step 5: Deploy
+### Step 5: Local Development & Testing (Emulator Suite)
+The Firebase Emulator Suite allows you to develop and test your application locally without affecting your production data. This is the recommended way to build new features or test changes.
+
+#### 🛠️ Requirements & Tools
+To run the Firebase emulators, you need the following installed:
+1. **Node.js**: (Installed in Step 2).
+2. **Firebase CLI**: `npm install -g firebase-tools` (Installed in Step 2).
+3. **Java Runtime Environment (JRE)**: Version 11 or higher is **required** to run the Cloud Firestore emulator. You can download it from [Adoptium](https://adoptium.net/) or use your package manager.
+
+#### 🚀 Running the Emulators
+1. Start the emulator suite from the project root:
+   ```bash
+   firebase emulators:start
+   ```
+2. Once the emulators are running, you can access:
+   - **Local Website**: `http://localhost:5000` (Hosting)
+   - **Emulator UI Dashboard**: `http://localhost:4000` (Management UI for Auth, Firestore, etc.)
+   - **Firestore Emulator**: `localhost:8080`
+   - **Auth Emulator**: `localhost:9099`
+
+#### 💡 How it works
+The application is pre-configured in `js/firebase-config.js` to automatically detect if it is running on `localhost`. If so, it will connect to the local emulators instead of the live Firebase project. This allows you to create test exhibitions and admin users in the Emulator UI without any cost or risk to your production environment.
+
+### Step 6: Deploy
 Now that everything is configured, push the Firestore security rules, index rules, and your application files to Google's servers.
 
 ```bash
@@ -122,7 +145,7 @@ firebase deploy
 
 Once deployed, you can visit your live application URL provided by the CLI (e.g., `https://your-project-id.web.app`).
 
-*(Note: For local development and testing without affecting the live database, you can run `firebase emulators:start`)*
+*(Note: For local development and testing without affecting the live database, refer to Step 5.)*
 
 ---
 
