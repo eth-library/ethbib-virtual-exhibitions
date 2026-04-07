@@ -1,4 +1,4 @@
-# 🖼️ Virtual IIIF Exhibition
+# Virtual IIIF Exhibition
 
 A lightweight, modern Single Page Application (SPA) for showcasing high-resolution IIIF (International Image Interoperability Framework) images in immersive, full-screen virtual exhibitions.
 
@@ -17,7 +17,7 @@ Instead of a traditional scrolling gallery, this app uses a "Prezi-style" interf
 
 ---
 
-## ✨ Features Overview
+## Features Overview
 
 ### 🌍 Public Viewer (`/`)
 The main interface your visitors will see.
@@ -40,7 +40,7 @@ A secure interface to manage your content.
 
 ---
 
-## 👩‍💻 Developer Guide: Getting Started
+## Developer Guide: Getting Started
 
 This guide explains how to set up the project from scratch, including Google Firebase infrastructure.
 
