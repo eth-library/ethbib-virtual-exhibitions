@@ -74,6 +74,7 @@ async function loadLanding() {
     document.getElementById('landingOverlay').style.display = 'flex';
     document.getElementById('viewer').classList.add('hidden');
     document.title = 'Virtuelle Ausstellung';
+    trackMatomoPageView('Übersicht');
 
     const q = query(
       collection(db, "exhibitions"), 
@@ -203,6 +204,7 @@ async function loadExhibition(slugOrId) {
     };
     const metaParts = [exh.curator, exh.institution, exh.year].filter(Boolean).join(' · ');
     document.getElementById('exhibitionMetaDisplay').textContent = metaParts;
+    trackMatomoPageView(exh.title);
 
     setLoadingProgress(95);
 
@@ -373,6 +375,12 @@ async function goToSlide(index, animClass = 'anim-zoom-in') {
 
   // Update overview active state
   updateOverviewActive(index);
+
+  // Matomo Virtual Page View for current slide
+  const slideItem = State.items[index];
+  const slideTitle = slideItem ? (slideItem.title || 'Ohne Titel') : `Slide ${index + 1}`;
+  const exhTitle = State.exhibition ? (State.exhibition.title || '') : '';
+  trackMatomoPageView(`${exhTitle} – ${slideTitle}`, `${window.location.origin}/${State.exhibition?.slug || State.exhibition?.id || 'exhibition'}/slide-${index + 1}`);
 }
 
 // ─── Info Panel ────────────────────────────────────────────────
@@ -864,3 +872,21 @@ window.toggleRegionZoom = toggleRegionZoom;
 window.openImpressum = openImpressum;
 window.closeImpressum = closeImpressum;
 window.startExhibition = startExhibition;
+
+/**
+ * Triggers a Matomo virtual page view.
+ * @param {string} title - Page title (optional)
+ * @param {string} url - Custom URL (optional)
+ */
+function trackMatomoPageView(title, url) {
+  if (typeof window._paq !== 'undefined') {
+    // If no URL provided, use the current one
+    const targetUrl = url || window.location.href;
+    console.log(`[Matomo] Track Page View: "${title}" | URL: ${targetUrl}`);
+    window._paq.push(['setCustomUrl', targetUrl]);
+    if (title) window._paq.push(['setDocumentTitle', title]);
+    window._paq.push(['trackPageView']);
+  } else {
+    console.warn('[Matomo] _paq is not defined.');
+  }
+}
