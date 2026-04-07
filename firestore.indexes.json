@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "exhibitions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "exhibit_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "exhibition_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sort_order",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

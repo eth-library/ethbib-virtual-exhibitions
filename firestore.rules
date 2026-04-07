@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    // Admins collection: users can read their own status to verify permissions
+    match /admins/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false; // Managed via Firebase Console
+    }
+    
+    // Exhibition rules
+    match /exhibitions/{exhibitionId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    // Exhibit Item rules
+    match /exhibit_items/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

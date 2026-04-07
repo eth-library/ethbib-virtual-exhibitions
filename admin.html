@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtuelle Ausstellung – Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <i class="fa-solid fa-images"></i>
+      <span>IIIF Ausstellung</span>
+    </div>
+    <button class="sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-view="exhibitions" onclick="showView('exhibitions')">
+      <i class="fa-solid fa-layer-group"></i><span>Ausstellungen</span>
+    </button>
+    <button class="nav-item" data-view="new-exhibition" onclick="showView('new-exhibition')">
+      <i class="fa-solid fa-plus-circle"></i><span>Neue Ausstellung</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="index.html" target="_blank" class="preview-link">
+      <i class="fa-solid fa-eye"></i><span>Ausstellung ansehen</span>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <h1 class="topbar-title" id="viewTitle">Ausstellungen</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" onclick="showView('new-exhibition')">
+        <i class="fa-solid fa-plus"></i> Neue Ausstellung
+      </button>
+    </div>
+  </header>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ==============================
+       VIEW: EXHIBITIONS LIST
+  =============================== -->
+  <section class="view" id="view-exhibitions">
+    <div class="exhibitions-grid" id="exhibitionsList">
+      <div class="loading-spinner"><i class="fa-solid fa-spinner fa-spin"></i> Lade Ausstellungen…</div>
+    </div>
+  </section>
+
+  <!-- ==============================
+       VIEW: NEW / EDIT EXHIBITION
+  =============================== -->
+  <section class="view hidden" id="view-new-exhibition">
+    <form class="form-card" id="exhibitionForm" onsubmit="saveExhibition(event)">
+      <input type="hidden" id="editExhibitionId" />
+
+      <div class="form-section-header">
+        <i class="fa-solid fa-info-circle"></i> Ausstellungsinformationen
+      </div>
+
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label for="exhTitle">Titel <span class="required">*</span></label>
+          <input type="text" id="exhTitle" placeholder="Titel der Ausstellung" required />
+        </div>
+        <div class="form-group">
+          <label for="exhSubtitle">Untertitel</label>
+          <input type="text" id="exhSubtitle" placeholder="Optionaler Untertitel" />
+        </div>
+      </div>
+
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label for="exhCurator">Kurator/in</label>
+          <input type="text" id="exhCurator" placeholder="Name der kuratorischen Person" />
+        </div>
+        <div class="form-group">
+          <label for="exhInstitution">Institution</label>
+          <input type="text" id="exhInstitution" placeholder="Museum, Archiv, Universität …" />
+        </div>
+      </div>
+
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label for="exhYear">Jahr</label>
+          <input type="text" id="exhYear" placeholder="z.B. 2024" />
+        </div>
+        <div class="form-group">
+          <label for="exhAccentColor">Akzentfarbe</label>
+          <div class="color-row">
+            <input type="color" id="exhAccentColor" value="#c8a97e" />
+            <span id="exhAccentColorHex">#c8a97e</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="exhCoverUrl">Cover-Bild IIIF URL</label>
+        <div class="url-input-row">
+          <input type="url" id="exhCoverUrl" placeholder="https://example.org/iiif/image/info.json" />
+          <button type="button" class="btn btn-outline btn-sm" onclick="previewCover()">
+            <i class="fa-solid fa-eye"></i> Vorschau
+          </button>
+        </div>
+        <div id="coverPreview" class="img-preview hidden"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="exhDescription">Beschreibung</label>
+        <textarea id="exhDescription" rows="4" placeholder="Kurzbeschreibung der Ausstellung …"></textarea>
+      </div>
+
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label for="exhSlug">URL-Slug <span class="required">*</span></label>
+          <input type="text" id="exhSlug" placeholder="meine-ausstellung" required
+                 pattern="[a-z0-9\-]+" title="Nur Kleinbuchstaben, Ziffern und Bindestriche" />
+        </div>
+        <div class="form-group toggle-group">
+          <label>Veröffentlicht</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="exhPublished" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ITEMS SECTION -->
+      <div class="form-section-header" style="margin-top:2rem;">
+        <i class="fa-solid fa-image"></i> Exponate
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItemRow()" style="margin-left:auto;">
+          <i class="fa-solid fa-plus"></i> Exponat hinzufügen
+        </button>
+      </div>
+
+      <div id="itemsContainer" class="items-container">
+        <!-- Items are dynamically added here -->
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="showView('exhibitions')">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" id="saveBtn">
+          <i class="fa-solid fa-save"></i> Ausstellung speichern
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ==============================
+       VIEW: EXHIBITION DETAIL / ITEMS
+  =============================== -->
+  <section class="view hidden" id="view-detail">
+    <div id="detailContent"></div>
+  </section>
+
+</main>
+
+<!-- ITEM TEMPLATE (hidden) -->
+<template id="itemRowTemplate">
+  <div class="item-row" data-index="">
+    <div class="item-row-header">
+      <span class="item-number">Exponat #<span class="item-num-label"></span></span>
+      <div class="item-row-actions">
+        <button type="button" class="btn-icon" title="Nach oben" onclick="moveItem(this, -1)"><i class="fa-solid fa-chevron-up"></i></button>
+        <button type="button" class="btn-icon" title="Nach unten" onclick="moveItem(this, 1)"><i class="fa-solid fa-chevron-down"></i></button>
+        <button type="button" class="btn-icon btn-icon-danger" title="Entfernen" onclick="removeItem(this)"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+    <div class="item-row-body">
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label>IIIF URL <span class="required">*</span></label>
+          <div class="url-input-row">
+            <input type="url" name="iiif_url" placeholder="https://…/iiif/…/info.json oder manifest" required />
+            <button type="button" class="btn btn-outline btn-sm" onclick="previewItemImage(this)">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div class="img-preview hidden"></div>
+        </div>
+        <div class="form-group">
+          <label>IIIF Typ</label>
+          <select name="iiif_type">
+            <option value="image">Image (info.json)</option>
+            <option value="manifest">Manifest (manifest.json)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label>Titel</label>
+          <input type="text" name="title" placeholder="Titel des Exponats" />
+        </div>
+        <div class="form-group">
+          <label>Untertitel / Datierung</label>
+          <input type="text" name="subtitle" placeholder="z.B. um 1890" />
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label>Künstler/in</label>
+          <input type="text" name="artist" placeholder="Name" />
+        </div>
+        <div class="form-group">
+          <label>Datierung</label>
+          <input type="text" name="date" placeholder="z.B. 1820–1830" />
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label>Medium / Technik</label>
+          <input type="text" name="medium" placeholder="z.B. Öl auf Leinwand" />
+        </div>
+        <div class="form-group">
+          <label>Masse</label>
+          <input type="text" name="dimensions" placeholder="z.B. 120 × 80 cm" />
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div class="form-group">
+          <label>Sammlung / Institution</label>
+          <input type="text" name="collection" placeholder="z.B. Kunstmuseum Basel" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Beschreibung / Legende</label>
+        <textarea name="description" rows="3" placeholder="Ausführlicher Text zum Exponat …"></textarea>
+      </div>
+
+      <!-- IIIF REGION / ZOOM DETAIL -->
+      <details class="custom-fields region-fields">
+        <summary><i class="fa-solid fa-magnifying-glass-plus" style="margin-right:6px;color:var(--accent)"></i>Bildausschnitt / Zoom-Region</summary>
+        <div style="padding:14px 14px 4px;">
+          <p class="field-hint">Definieren Sie einen Bildausschnitt, auf den der Benutzer im Viewer einzoomen kann. Koordinaten gemäss IIIF Image API (x, y, Breite, Höhe).</p>
+          <div class="form-row" style="gap:10px;align-items:flex-end;">
+            <div class="form-group" style="flex:0 0 90px;">
+              <label>X</label>
+              <input type="number" name="region_x" placeholder="0" min="0" />
+            </div>
+            <div class="form-group" style="flex:0 0 90px;">
+              <label>Y</label>
+              <input type="number" name="region_y" placeholder="0" min="0" />
+            </div>
+            <div class="form-group" style="flex:0 0 90px;">
+              <label>Breite (W)</label>
+              <input type="number" name="region_w" placeholder="500" min="1" />
+            </div>
+            <div class="form-group" style="flex:0 0 90px;">
+              <label>Höhe (H)</label>
+              <input type="number" name="region_h" placeholder="500" min="1" />
+            </div>
+            <div class="form-group toggle-group" style="flex:0 0 120px;padding-bottom:2px;">
+              <label style="white-space:nowrap">Prozent (%)</label>
+              <label class="toggle-switch">
+                <input type="checkbox" name="region_pct" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row two-col">
+            <div class="form-group">
+              <label>Button-Beschriftung</label>
+              <input type="text" name="region_label" placeholder="z.B. Detail ansehen" />
+            </div>
+            <div class="form-group" style="justify-content:flex-end;padding-top:6px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="previewRegion(this)">
+                <i class="fa-solid fa-crop-simple"></i> Region vorschauen
+              </button>
+            </div>
+          </div>
+          <div class="region-preview hidden">
+            <div class="region-preview-images">
+              <div class="region-preview-col">
+                <div class="region-preview-label">Vollbild</div>
+                <div class="region-preview-full"></div>
+              </div>
+              <div class="region-preview-col">
+                <div class="region-preview-label">Ausschnitt</div>
+                <div class="region-preview-crop"></div>
+              </div>
+            </div>
+            <div class="region-preview-url"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="custom-fields">
+        <summary>Zusätzliche Felder</summary>
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label>Zusatzfeld 1 – Bezeichnung</label>
+            <input type="text" name="custom_label_1" placeholder="z.B. Inventarnummer" />
+          </div>
+          <div class="form-group">
+            <label>Zusatzfeld 1 – Wert</label>
+            <input type="text" name="custom_value_1" placeholder="z.B. KM-1234" />
+          </div>
+        </div>
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label>Zusatzfeld 2 – Bezeichnung</label>
+            <input type="text" name="custom_label_2" placeholder="z.B. Provenienz" />
+          </div>
+          <div class="form-group">
+            <label>Zusatzfeld 2 – Wert</label>
+            <input type="text" name="custom_value_2" placeholder="z.B. Ankauf 1912" />
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+</template>
+
+<!-- LOGIN GATE -->
+<div id="loginGate" class="login-gate">
+  <div class="login-box">
+    <div class="login-icon"><i class="fa-solid fa-lock"></i></div>
+    <h1 class="login-title">Administration</h1>
+    <p class="login-subtitle">Virtuelle Ausstellung</p>
+    <div id="loginError" class="login-error hidden">
+        <i class="fa-solid fa-circle-exclamation"></i> Zugriff verweigert.
+    </div>
+    <button type="button" class="login-btn" id="googleLoginBtn">
+        <i class="fa-brands fa-google"></i> Mit Google anmelden
+    </button>
+  </div>
+</div>
+
+<script src="js/iiif-helper.js"></script>
+<script type="module">
+  import { db, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from '/js/firebase-config.js';
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+  
+  // Handle Login Click
+  document.getElementById('googleLoginBtn').onclick = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Anmeldung fehlgeschlagen: " + error.message);
+    }
+  };
+
+  // Auth Observer
+  onAuthStateChanged(auth, async (user) => {
+    const gate = document.getElementById('loginGate');
+    const errEl = document.getElementById('loginError');
+    
+    console.log("Auth state changed:", user ? user.email : "no user");
+
+    if (user) {
+      // Check if user is in the 'admins' collection
+      try {
+        const adminDoc = await getDoc(doc(db, 'admins', user.email));
+        
+        if (adminDoc.exists()) {
+          console.log("Access granted for:", user.email);
+          gate.classList.add('hidden');
+          gate.style.display = 'none';
+          errEl.classList.add('hidden');
+          
+          if (window.loadExhibitions) {
+            window.loadExhibitions();
+          } else {
+            console.warn("window.loadExhibitions not found yet, it will be called by admin.js");
+          }
+        } else {
+          console.warn("Access denied for:", user.email);
+          errEl.innerText = `Zugriff verweigert für ${user.email}.`;
+          errEl.classList.remove('hidden');
+          signOut(auth);
+        }
+      } catch (err) {
+        console.error("Error checking admin status:", err);
+        errEl.innerText = "Fehler bei der Berechtigungsprüfung.";
+        errEl.classList.remove('hidden');
+        signOut(auth);
+      }
+    } else {
+      gate.style.display = 'flex';
+    }
+  });
+
+  // Global Logout for the UI
+  window.logout = () => signOut(auth);
+</script>
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
