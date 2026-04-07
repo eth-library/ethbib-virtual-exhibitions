@@ -1,4 +1,4 @@
-# Virtual IIIF Exhibition
+# Virtual IIIF Exhibitions
 
 A lightweight, modern Single Page Application (SPA) for showcasing high-resolution IIIF (International Image Interoperability Framework) images in immersive, full-screen virtual exhibitions.
 
