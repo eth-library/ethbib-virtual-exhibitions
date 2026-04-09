@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/admin.css?v=1.1" />
 </head>
 <body>
 
@@ -36,7 +36,7 @@
 </aside>
 
 <!-- MAIN CONTENT -->
-<main class="main-content">
+<main class="main-content" id="mainContent">
 
   <!-- HEADER -->
   <header class="topbar">
@@ -245,25 +245,60 @@
         <summary><i class="fa-solid fa-magnifying-glass-plus" style="margin-right:6px;color:var(--accent)"></i>Bildausschnitt / Zoom-Region</summary>
         <div style="padding:14px 14px 4px;">
           <p class="field-hint">Definieren Sie einen Bildausschnitt, auf den der Benutzer im Viewer einzoomen kann. Koordinaten gemäss IIIF Image API (x, y, Breite, Höhe).</p>
-          <div class="form-row" style="gap:10px;align-items:flex-end;">
-            <div class="form-group" style="flex:0 0 90px;">
-              <label>X</label>
+          <div class="form-row" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1 1 80px;max-width:120px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <label>X</label>
+                <div class="tooltip-container align-left">
+                  <i class="fa-solid fa-circle-info info-icon" style="font-size:11px;"></i>
+                  <div class="tooltip-content">Der Startpunkt von links (in px oder %).</div>
+                </div>
+              </div>
               <input type="number" name="region_x" placeholder="0" min="0" />
             </div>
-            <div class="form-group" style="flex:0 0 90px;">
-              <label>Y</label>
+            <div class="form-group" style="flex:1 1 80px;max-width:120px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <label>Y</label>
+                <div class="tooltip-container">
+                  <i class="fa-solid fa-circle-info info-icon" style="font-size:11px;"></i>
+                  <div class="tooltip-content">Der Startpunkt von oben (in px oder %).</div>
+                </div>
+              </div>
               <input type="number" name="region_y" placeholder="0" min="0" />
             </div>
-            <div class="form-group" style="flex:0 0 90px;">
-              <label>Breite (W)</label>
+            <div class="form-group" style="flex:1 1 80px;max-width:120px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <label>Breite (W)</label>
+                <div class="tooltip-container">
+                  <i class="fa-solid fa-circle-info info-icon" style="font-size:11px;"></i>
+                  <div class="tooltip-content">Die Breite des Bereichs (in px oder %).</div>
+                </div>
+              </div>
               <input type="number" name="region_w" placeholder="500" min="1" />
             </div>
-            <div class="form-group" style="flex:0 0 90px;">
-              <label>Höhe (H)</label>
+            <div class="form-group" style="flex:1 1 80px;max-width:120px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <label>Höhe (H)</label>
+                <div class="tooltip-container">
+                  <i class="fa-solid fa-circle-info info-icon" style="font-size:11px;"></i>
+                  <div class="tooltip-content">Die Höhe des Bereichs (in px oder %).</div>
+                </div>
+              </div>
               <input type="number" name="region_h" placeholder="500" min="1" />
             </div>
-            <div class="form-group toggle-group" style="flex:0 0 120px;padding-bottom:2px;">
-              <label style="white-space:nowrap">Prozent (%)</label>
+            <div class="form-group toggle-group" style="flex:1 1 140px;max-width:200px;padding-bottom:2px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <label style="white-space:nowrap;margin-bottom:0;">Prozent (%)</label>
+                <div class="tooltip-container">
+                  <i class="fa-solid fa-circle-info info-icon"></i>
+                  <div class="tooltip-content">
+                    <strong>Koordinatensystem</strong>
+                    Deaktiviert (Pixel): Werte basieren auf der Original-Auflösung.<br>
+                    Aktiviert (Prozent): Werte beziehen sich auf die Bildgröße (0-100).<br>
+                    Prozent ist oft einfacher, da es auflösungsunabhängig ist.
+                  </div>
+                </div>
+              </div>
               <label class="toggle-switch">
                 <input type="checkbox" name="region_pct" />
                 <span class="slider"></span>
@@ -397,6 +432,78 @@
   // Global Logout for the UI
   window.logout = () => signOut(auth);
 </script>
-<script type="module" src="js/admin.js"></script>
+<script type="module" src="js/admin.js?v=1.1"></script>
 </body>
 </html>
+
+<style>
+/* Tooltip Fix (Injected at end or into admin.css) */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.info-icon {
+  color: var(--text-dim);
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.tooltip-container:hover .info-icon {
+  color: var(--accent);
+}
+
+.tooltip-content {
+  display: none;
+  position: absolute;
+  top: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-active);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  z-index: 9999;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  pointer-events: none;
+  white-space: normal;
+}
+
+.tooltip-content strong {
+  display: block;
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tooltip-container:hover .tooltip-content {
+  display: block;
+}
+
+/* LEFT ALIGNMENT for tooltips near the edge */
+.tooltip-container.align-left .tooltip-content {
+  left: -10px;
+  transform: none;
+}
+.tooltip-container.align-left .tooltip-content::after {
+  left: 16px;
+  margin-left: 0;
+}
+
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent var(--border-active) transparent;
+}
+</style>
