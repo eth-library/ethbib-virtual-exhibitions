@@ -4,7 +4,7 @@
    ============================================================ */
 
 import { db } from './firebase-config.js';
-import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // ─── State ────────────────────────────────────────────────────
 const State = {
@@ -34,6 +34,16 @@ const ANIM_SEQUENCE = [
 
 // ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Load Global Settings
+  try {
+    const settingsDoc = await getDoc(doc(db, "settings", "global"));
+    if (settingsDoc.exists() && settingsDoc.data().theme === "light") {
+      document.documentElement.classList.add("light-mode");
+    }
+  } catch (e) {
+    console.warn("Could not load global settings:", e);
+  }
+
   const slug = getSlugFromUrl();
 
   if (slug) {
@@ -74,6 +84,7 @@ async function loadLanding() {
     document.getElementById('landingOverlay').style.display = 'flex';
     document.getElementById('viewer').classList.add('hidden');
     document.title = 'Virtuelle Ausstellung';
+    document.documentElement.style.removeProperty('--accent');
     trackMatomoPageView('Übersicht');
 
     const q = query(
@@ -187,8 +198,8 @@ async function loadExhibition(slugOrId) {
     await Promise.allSettled(resolvePromises);
     setLoadingProgress(80);
 
-    // Set accent color
-    if (exh.accent_color) {
+    // Set accent color (nur wenn nicht im Light Mode oder wenn es explizit gewünscht ist)
+    if (exh.accent_color && !document.documentElement.classList.contains("light-mode")) {
       document.documentElement.style.setProperty('--accent', exh.accent_color);
     }
 
@@ -199,8 +210,7 @@ async function loadExhibition(slugOrId) {
     titleEl.href = `/${exh.slug || exh.id}`;
     titleEl.onclick = (e) => {
       e.preventDefault();
-      history.pushState(null, '', '/');
-      loadLanding();
+      showIntroOverlay();
     };
     const metaParts = [exh.curator, exh.institution, exh.year].filter(Boolean).join(' · ');
     document.getElementById('exhibitionMetaDisplay').textContent = metaParts;
@@ -251,6 +261,11 @@ function showIntro(exh) {
 function startExhibition() {
   document.getElementById('introOverlay').classList.add('hidden');
   goToSlide(0, 'anim-zoom-in');
+}
+
+function showIntroOverlay() {
+  const overlay = document.getElementById('introOverlay');
+  if (overlay) overlay.classList.remove('hidden');
 }
 
 // ─── Slides ────────────────────────────────────────────────────

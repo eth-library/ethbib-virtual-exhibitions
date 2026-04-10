@@ -14,16 +14,16 @@
     <link rel="stylesheet" href="css/viewer.css" />
     <!-- Matomo -->
     <script>
-      var _paq = window._paq = window._paq || [];
-      /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-      _paq.push(['enableLinkTracking']);
-      (function() {
-        var u="https://library-ethz.opsone-analytics.ch/";
-        _paq.push(['setTrackerUrl', u+'matomo.php']);
-        _paq.push(['setSiteId', '83']);
-        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-        g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-      })();
+        var _paq = window._paq = window._paq || [];
+        /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+        _paq.push(['enableLinkTracking']);
+        (function () {
+            var u = "https://library-ethz.opsone-analytics.ch/";
+            _paq.push(['setTrackerUrl', u + 'matomo.php']);
+            _paq.push(['setSiteId', '83']);
+            var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+            g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+        })();
     </script>
     <!-- End Matomo Code -->
 </head>
@@ -72,7 +72,8 @@
                     <button class="ui-btn" title="Vollbild" onclick="toggleFullscreen()">
                         <i class="fa-solid fa-expand" id="fullscreenIcon"></i>
                     </button>
-                    <a href="/" class="ui-btn" title="Ausstellungsauswahl" onclick="event.preventDefault(); history.pushState(null, '', '/'); window.dispatchEvent(new PopStateEvent('popstate'));">
+                    <a href="/" class="ui-btn" title="Ausstellungsauswahl"
+                        onclick="event.preventDefault(); history.pushState(null, '', '/'); window.dispatchEvent(new PopStateEvent('popstate'));">
                         <i class="fa-solid fa-house"></i>
                     </a>
                 </div>

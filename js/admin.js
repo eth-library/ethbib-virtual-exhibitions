@@ -75,12 +75,13 @@ function showView(view) {
   const titles = {
     'exhibitions': 'Ausstellungen',
     'new-exhibition': currentExhibitionId ? 'Ausstellung bearbeiten' : 'Neue Ausstellung',
-    'detail': 'Ausstellung Details'
+    'detail': 'Ausstellung Details',
+    'settings': 'Einstellungen'
   };
   document.getElementById('viewTitle').textContent = titles[view] || view;
 
   if (view === 'exhibitions') loadExhibitions();
-  if (view === 'new-exhibition' && !currentExhibitionId) resetExhibitionForm();
+  if (view === 'settings') loadSettings();
 }
 
 // ─── Load Exhibitions ──────────────────────────────────────────
@@ -183,6 +184,11 @@ function resetExhibitionForm() {
   document.getElementById('coverPreview').classList.add('hidden');
   document.getElementById('itemsContainer').innerHTML = '';
   document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-save"></i> Ausstellung speichern';
+}
+
+function startNewExhibition() {
+  resetExhibitionForm();
+  showView('new-exhibition');
 }
 
 async function editExhibition(id) {
@@ -673,6 +679,46 @@ async function openDetail(id) {
   }
 }
 
+// ─── Settings ──────────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const docRef = doc(db, "settings", "global");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      document.getElementById('settingTheme').value = data.theme || 'dark';
+    } else {
+      document.getElementById('settingTheme').value = 'dark'; // Fallback
+    }
+  } catch (e) {
+    console.error("Error loading settings:", e);
+    showToast('Fehler beim Laden der Einstellungen.', 'error');
+  }
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const btn = document.getElementById('saveSettingsBtn');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Speichere…';
+  btn.disabled = true;
+
+  const theme = document.getElementById('settingTheme').value;
+  try {
+    await setDoc(doc(db, "settings", "global"), { theme: theme, updated_at: serverTimestamp() }, { merge: true });
+    showToast('Einstellungen gespeichert!', 'success');
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Gespeichert';
+    setTimeout(() => {
+      btn.innerHTML = '<i class="fa-solid fa-save"></i> Einstellungen speichern';
+      btn.disabled = false;
+    }, 2000);
+  } catch (e) {
+    console.error("Error saving settings:", e);
+    showToast('Fehler: ' + e.message, 'error');
+    btn.innerHTML = '<i class="fa-solid fa-save"></i> Einstellungen speichern';
+    btn.disabled = false;
+  }
+}
+
 // ─── Utilities ─────────────────────────────────────────────────
 function slugify(text) {
   return text.toLowerCase()
@@ -701,6 +747,7 @@ function showToast(msg, type = 'info') {
 // Global functions for HTML onclick handlers
 window.loadExhibitions = loadExhibitions;
 window.showView = showView;
+window.startNewExhibition = startNewExhibition;
 window.editExhibition = editExhibition;
 window.saveExhibition = saveExhibition;
 window.deleteExhibition = deleteExhibition;
@@ -712,3 +759,5 @@ window.previewItemImage = previewItemImage;
 window.previewRegion = previewRegion;
 window.openDetail = openDetail;
 window.showToast = showToast;
+window.loadSettings = loadSettings;
+window.saveSettings = saveSettings;

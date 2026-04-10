@@ -24,8 +24,11 @@
     <button class="nav-item active" data-view="exhibitions" onclick="showView('exhibitions')">
       <i class="fa-solid fa-layer-group"></i><span>Ausstellungen</span>
     </button>
-    <button class="nav-item" data-view="new-exhibition" onclick="showView('new-exhibition')">
+    <button class="nav-item" data-view="new-exhibition" onclick="startNewExhibition()">
       <i class="fa-solid fa-plus-circle"></i><span>Neue Ausstellung</span>
+    </button>
+    <button class="nav-item" data-view="settings" onclick="showView('settings')">
+      <i class="fa-solid fa-cog"></i><span>Einstellungen</span>
     </button>
   </nav>
   <div class="sidebar-footer">
@@ -42,7 +45,7 @@
   <header class="topbar">
     <h1 class="topbar-title" id="viewTitle">Ausstellungen</h1>
     <div class="topbar-actions">
-      <button class="btn btn-primary" onclick="showView('new-exhibition')">
+      <button class="btn btn-primary" onclick="startNewExhibition()">
         <i class="fa-solid fa-plus"></i> Neue Ausstellung
       </button>
     </div>
@@ -164,6 +167,33 @@
   =============================== -->
   <section class="view hidden" id="view-detail">
     <div id="detailContent"></div>
+  </section>
+
+  <!-- ==============================
+       VIEW: SETTINGS
+  =============================== -->
+  <section class="view hidden" id="view-settings">
+    <form class="form-card" id="settingsForm" onsubmit="saveSettings(event)">
+      <div class="form-section-header">
+        <i class="fa-solid fa-cog"></i> Globale Einstellungen
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="max-width: 300px;">
+          <label for="settingTheme">Erscheinungsbild (Public Viewer) <span class="required">*</span></label>
+          <select id="settingTheme" required>
+            <option value="dark">Dark Mode (Standard)</option>
+            <option value="light">Light Mode</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary" id="saveSettingsBtn">
+          <i class="fa-solid fa-save"></i> Einstellungen speichern
+        </button>
+      </div>
+    </form>
   </section>
 
 </main>

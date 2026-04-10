@@ -13,6 +13,12 @@ service cloud.firestore {
       allow write: if false; // Managed via Firebase Console
     }
     
+    // Global Settings rules
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Exhibition rules
     match /exhibitions/{exhibitionId} {
       allow read: if true; 
