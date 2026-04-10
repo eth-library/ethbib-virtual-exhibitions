@@ -20,6 +20,9 @@ const State = {
   // Region zoom
   regionZoomed: false,
   regionZoomData: null, // { x, y, w, h, pct, naturalW, naturalH }
+  // OpenSeadragon
+  osdViewer: null,
+  osdRotation: 0,
 };
 
 // Animation sequences (cycles through for variety)
@@ -188,14 +191,19 @@ async function loadExhibition(slugOrId) {
     setLoadingProgress(50);
     setLoadingText('Bilder werden aufgelöst…');
 
-    // Resolve all image URLs upfront
+    // Resolve all image URLs and IIIF service URLs upfront
     const resolvePromises = State.items.map(item =>
       IIIFHelper.resolveIIIFImageUrl(item.iiif_url, item.iiif_type || 'image', 1200)
         .then(url => { item._resolvedUrl = url; })
         .catch(() => { item._resolvedUrl = null; })
     );
+    const servicePromises = State.items.map(item =>
+      IIIFHelper.resolveIIIFServiceUrl(item.iiif_url, item.iiif_type || 'image')
+        .then(url => { item._iiifServiceUrl = url; })
+        .catch(() => { item._iiifServiceUrl = null; })
+    );
 
-    await Promise.allSettled(resolvePromises);
+    await Promise.allSettled([...resolvePromises, ...servicePromises]);
     setLoadingProgress(80);
 
     // Set accent color (nur wenn nicht im Light Mode oder wenn es explizit gewünscht ist)
@@ -293,6 +301,7 @@ function buildSlides() {
       // Wrap image so transform works independently of object-fit layout
       const wrap = document.createElement('div');
       wrap.className = 'slide-image-wrap';
+      wrap.style.display = 'none';
 
       const img = document.createElement('img');
       img.className = 'slide-image';
@@ -307,6 +316,13 @@ function buildSlides() {
     } else {
       imgContainer.appendChild(buildImagePlaceholder(item.title));
     }
+
+    // OpenSeadragon container (hidden until slide is active)
+    const osdDiv = document.createElement('div');
+    osdDiv.className = 'slide-osd-container';
+    osdDiv.id = `osd-${index}`;
+    osdDiv.style.display = 'none';
+    imgContainer.appendChild(osdDiv);
 
     slide.appendChild(imgContainer);
     canvas.appendChild(slide);
@@ -354,6 +370,9 @@ async function goToSlide(index, animClass = 'anim-zoom-in') {
   // Reset any active region zoom before transitioning
   if (State.regionZoomed) _resetRegionZoom(false);
 
+  // Destroy previous OSD instance before transition
+  _destroyOSD();
+
   // Fade to black
   transOverlay.classList.add('fade-in');
   await delay(380);
@@ -381,6 +400,9 @@ async function goToSlide(index, animClass = 'anim-zoom-in') {
   imgContainers.forEach(c => {
     c.classList.toggle('info-hidden', !State.infoPanelVisible);
   });
+
+  // Initialize OSD behind the black overlay, then reveal
+  await _initOSD(index);
 
   // Fade back in
   transOverlay.classList.remove('fade-in');
@@ -476,7 +498,7 @@ function updateInfoPanel(index) {
   }
 }
 
-// ─── Region Zoom ───────────────────────────────────────────────
+// ─── Region Zoom (OSD-aware) ────────────────────────────────────
 function toggleRegionZoom() {
   if (State.regionZoomed) {
     _resetRegionZoom();
@@ -486,63 +508,79 @@ function toggleRegionZoom() {
 }
 
 function _applyRegionZoom() {
+  if (!State.regionZoomData) return;
+
+  const d    = State.regionZoomData;
+  const item = State.items[State.currentIndex];
+  const btn  = document.getElementById('regionZoomBtn');
+  const icon = document.getElementById('regionZoomIcon');
+
+  // If OSD is active, use viewport navigation
+  if (State.osdViewer) {
+    // Convert region coords to OSD viewport coordinates
+    // OSD uses normalised coords where width = 1 (image aspect ratio)
+    const viewer = State.osdViewer;
+    const tiledImage = viewer.world.getItemAt(0);
+    if (!tiledImage) return;
+
+    const imgSize = tiledImage.getContentSize();
+    let rx, ry, rw, rh;
+    if (d.pct) {
+      rx = (d.x / 100) * imgSize.x;
+      ry = (d.y / 100) * imgSize.y;
+      rw = (d.w / 100) * imgSize.x;
+      rh = (d.h / 100) * imgSize.y;
+    } else {
+      rx = d.x; ry = d.y; rw = d.w; rh = d.h;
+    }
+
+    const rect = tiledImage.imageToViewportRectangle(rx, ry, rw, rh);
+    viewer.viewport.fitBounds(rect, false);
+
+    State.regionZoomed = true;
+    btn.classList.add('zoomed-in');
+    icon.className = 'fa-solid fa-magnifying-glass-minus';
+    document.getElementById('regionZoomLabel').textContent = 'Zurück zur Gesamtansicht';
+    return;
+  }
+
+  // Fallback: classic image-swap approach (no OSD)
   const slide = document.getElementById(`slide-${State.currentIndex}`);
   if (!slide) return;
   const img  = slide.querySelector('.slide-image');
   const wrap = slide.querySelector('.slide-image-wrap');
-  if (!img || !wrap || !State.regionZoomData) return;
+  if (!img || !wrap) return;
 
-  const d       = State.regionZoomData;
-  const item    = State.items[State.currentIndex];
   const baseUrl = (item.iiif_url || '').replace(/\/info\.json$/, '');
   if (!baseUrl) return;
 
-  // ── Button state immediately ───────────────────────────────
-  const btn  = document.getElementById('regionZoomBtn');
-  const icon = document.getElementById('regionZoomIcon');
   btn.classList.add('zoomed-in');
   btn.disabled = true;
   icon.className = 'fa-solid fa-spinner fa-spin';
   document.getElementById('regionZoomLabel').textContent = 'Wird geladen…';
 
-  // ── Build the IIIF region URL ──────────────────────────────
-  // Request at double the container width for crisp rendering on retina
   const containerRect = slide.querySelector('.slide-image-container').getBoundingClientRect();
   const tileSize = Math.round(Math.max(containerRect.width, containerRect.height) * 2);
   const regionUrl = IIIFHelper.buildIIIFRegionUrl(baseUrl, d, tileSize);
 
-  // ── Load the region image, then cross-fade ─────────────────
   const regionImg = new Image();
   regionImg.onload = () => {
-    // Save original src for reset
     if (!img.dataset.originalSrc) img.dataset.originalSrc = img.src;
-
-    // Cross-fade: fade out current, swap src, fade in
     img.style.transition = 'opacity 0.35s ease';
     img.style.opacity    = '0';
-
     setTimeout(() => {
       img.src = regionUrl;
-      // Also update blurred background
       const bg = slide.querySelector('.slide-bg');
       if (bg) bg.style.backgroundImage = `url("${regionUrl}")`;
-
       img.style.opacity = '1';
-
-      // Reset any leftover CSS transform from previous attempts
       wrap.style.transition    = 'none';
       wrap.style.transform     = 'scale(1)';
       wrap.style.transformOrigin = 'center center';
-
       State.regionZoomed = true;
-
-      // Update button
       btn.disabled = false;
       icon.className = 'fa-solid fa-magnifying-glass-minus';
       document.getElementById('regionZoomLabel').textContent = 'Zurück zur Gesamtansicht';
     }, 320);
-
-    // Add vignette
     let vig = slide.querySelector('.region-vignette');
     if (!vig) {
       vig = document.createElement('div');
@@ -551,47 +589,57 @@ function _applyRegionZoom() {
     }
     requestAnimationFrame(() => vig.classList.add('active'));
   };
-
   regionImg.onerror = () => {
-    // Server error – fall back gracefully
     btn.disabled = false;
     btn.classList.remove('zoomed-in');
     icon.className = 'fa-solid fa-magnifying-glass-plus';
     document.getElementById('regionZoomLabel').textContent = item.region_label || 'Detail ansehen';
     console.warn('IIIF region request failed:', regionUrl);
   };
-
   regionImg.src = regionUrl;
 }
 
 function _resetRegionZoom(animated = true) {
+  // If OSD is active, just go home
+  if (State.osdViewer) {
+    State.osdViewer.viewport.goHome(true);
+    State.regionZoomed = false;
+    if (animated) {
+      const btn  = document.getElementById('regionZoomBtn');
+      const icon = document.getElementById('regionZoomIcon');
+      const item = State.items[State.currentIndex];
+      btn.classList.remove('zoomed-in');
+      icon.className = 'fa-solid fa-magnifying-glass-plus';
+      document.getElementById('regionZoomLabel').textContent =
+        (item && item.region_label) ? item.region_label : 'Detail ansehen';
+    }
+    return;
+  }
+
+  // Fallback: classic image-swap restore
   const slide = document.getElementById(`slide-${State.currentIndex}`);
   if (!slide) return;
   const img  = slide.querySelector('.slide-image');
   const wrap = slide.querySelector('.slide-image-wrap');
   if (!img || !wrap) return;
 
-  // Restore original full-image src with cross-fade
   const originalSrc = img.dataset.originalSrc;
   if (originalSrc && img.src !== originalSrc) {
     img.style.transition = animated ? 'opacity 0.35s ease' : 'none';
     img.style.opacity    = '0';
     setTimeout(() => {
       img.src = originalSrc;
-      // Restore background blur
       const bg = slide.querySelector('.slide-bg');
       if (bg) bg.style.backgroundImage = `url("${originalSrc}")`;
       img.style.opacity = '1';
     }, animated ? 320 : 0);
   }
 
-  // Ensure no leftover CSS transform
   wrap.style.transition    = 'none';
   wrap.style.transform     = 'scale(1)';
   wrap.style.transformOrigin = 'center center';
   wrap.classList.remove('region-zoomed');
 
-  // Remove vignette
   const vig = slide.querySelector('.region-vignette');
   if (vig) {
     vig.classList.remove('active');
@@ -600,7 +648,6 @@ function _resetRegionZoom(animated = true) {
 
   State.regionZoomed = false;
 
-  // Restore button
   if (animated) {
     const btn  = document.getElementById('regionZoomBtn');
     const icon = document.getElementById('regionZoomIcon');
@@ -610,6 +657,156 @@ function _resetRegionZoom(animated = true) {
     icon.className = 'fa-solid fa-magnifying-glass-plus';
     document.getElementById('regionZoomLabel').textContent =
       (item && item.region_label) ? item.region_label : 'Detail ansehen';
+  }
+}
+
+// ─── OpenSeadragon Lifecycle ────────────────────────────────────
+function _initOSD(index) {
+  const item = State.items[index];
+  if (!item) return;
+
+  const slide    = document.getElementById(`slide-${index}`);
+  const osdDiv   = document.getElementById(`osd-${index}`);
+  const wrap     = slide ? slide.querySelector('.slide-image-wrap') : null;
+  if (!osdDiv) return;
+
+  // Build tile source: prefer IIIF service URL for deep zoom, fall back to simple image
+  let tileSources;
+  if (item._iiifServiceUrl) {
+    tileSources = [item._iiifServiceUrl + '/info.json'];
+  } else if (item._resolvedUrl) {
+    tileSources = [{ type: 'image', url: item._resolvedUrl }];
+  } else {
+    // No image available – don't init OSD
+    return;
+  }
+
+  // Show OSD container at full opacity (crossfade overlay handles the visual transition)
+  osdDiv.style.display = 'block';
+  osdDiv.style.opacity = '1';
+
+  State.osdRotation = 0;
+
+  return new Promise((resolve) => {
+    // Safety timeout – reveal even if tiles take too long
+    const timeout = setTimeout(() => resolve(), 3000);
+
+    try {
+      State.osdViewer = OpenSeadragon({
+        id: `osd-${index}`,
+        tileSources: tileSources,
+        showNavigationControl: false,
+        showNavigator: false,
+        animationTime: 0.35,
+        blendTime: 0.15,
+        constrainDuringPan: false,
+        minZoomImageRatio: 0.5,
+        maxZoomPixelRatio: 4,
+        visibilityRatio: 0.5,
+        gestureSettingsMouse: {
+          clickToZoom: false,
+          dblClickToZoom: true,
+          scrollToZoom: true,
+        },
+        gestureSettingsTouch: {
+          pinchToZoom: true,
+          flickEnabled: false,
+          clickToZoom: false,
+          dblClickToZoom: true,
+        },
+        crossOriginPolicy: 'Anonymous',
+        ajaxWithCredentials: false,
+        immediateRender: true,
+        prefixUrl: '',
+      });
+
+      // Resolve once the first tile is actually drawn
+      State.osdViewer.addOnceHandler('tile-drawn', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      // Fallback for simple image sources (no tiles)
+      State.osdViewer.addOnceHandler('open', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      // Show floating toolbar
+      const toolbar = document.getElementById('osdToolbar');
+      if (toolbar) toolbar.style.display = '';
+
+    } catch (e) {
+      console.warn('OpenSeadragon init failed, falling back to static image:', e);
+      osdDiv.style.display = 'none';
+      if (wrap) wrap.style.display = '';
+      clearTimeout(timeout);
+      resolve();
+    }
+  });
+}
+
+function _destroyOSD() {
+  if (State.osdViewer) {
+    try { State.osdViewer.destroy(); } catch (e) { /* ignore */ }
+    State.osdViewer = null;
+  }
+  State.osdRotation = 0;
+
+  // Clean up OSD container on the previously active slide
+  if (State.currentIndex >= 0) {
+    const osdDiv = document.getElementById(`osd-${State.currentIndex}`);
+    if (osdDiv) {
+      osdDiv.style.display = 'none';
+      osdDiv.innerHTML = '';  // clear OSD DOM
+    }
+  }
+
+  // Hide floating toolbar
+  const toolbar = document.getElementById('osdToolbar');
+  if (toolbar) toolbar.style.display = 'none';
+}
+
+// ─── OSD Toolbar Actions ────────────────────────────────────────
+function osdZoomIn() {
+  if (State.osdViewer) {
+    State.osdViewer.viewport.zoomBy(1.5);
+    State.osdViewer.viewport.applyConstraints();
+  }
+}
+
+function osdZoomOut() {
+  if (State.osdViewer) {
+    State.osdViewer.viewport.zoomBy(0.67);
+    State.osdViewer.viewport.applyConstraints();
+  }
+}
+
+function osdRotateCW() {
+  if (State.osdViewer) {
+    State.osdRotation = (State.osdRotation + 90) % 360;
+    State.osdViewer.viewport.setRotation(State.osdRotation);
+  }
+}
+
+function osdResetView() {
+  if (State.osdViewer) {
+    State.osdRotation = 0;
+    State.osdViewer.viewport.setRotation(0);
+    State.osdViewer.viewport.goHome(true);
+  }
+  // Also reset region zoom state if active
+  if (State.regionZoomed) {
+    State.regionZoomed = false;
+    const btn  = document.getElementById('regionZoomBtn');
+    const icon = document.getElementById('regionZoomIcon');
+    const item = State.items[State.currentIndex];
+    if (btn) {
+      btn.classList.remove('zoomed-in');
+      icon.className = 'fa-solid fa-magnifying-glass-plus';
+      document.getElementById('regionZoomLabel').textContent =
+        (item && item.region_label) ? item.region_label : 'Detail ansehen';
+    }
   }
 }
 
@@ -731,6 +928,20 @@ function setupKeyboard() {
       case 'G':
         toggleOverview();
         break;
+      case '+':
+      case '=':
+        if (State.osdViewer) { e.preventDefault(); osdZoomIn(); }
+        break;
+      case '-':
+        if (State.osdViewer) { e.preventDefault(); osdZoomOut(); }
+        break;
+      case 'r':
+      case 'R':
+        if (State.osdViewer) { e.preventDefault(); osdRotateCW(); }
+        break;
+      case '0':
+        if (State.osdViewer) { e.preventDefault(); osdResetView(); }
+        break;
     }
   });
 }
@@ -745,6 +956,8 @@ function setupTouch() {
   }, { passive: true });
 
   stage.addEventListener('touchend', (e) => {
+    // Don't fire swipe-to-navigate if touch was inside the OSD container
+    if (e.target.closest && e.target.closest('.slide-osd-container')) return;
     const dx = e.changedTouches[0].clientX - State.touchStartX;
     const dy = e.changedTouches[0].clientY - State.touchStartY;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
@@ -887,6 +1100,10 @@ window.toggleRegionZoom = toggleRegionZoom;
 window.openImpressum = openImpressum;
 window.closeImpressum = closeImpressum;
 window.startExhibition = startExhibition;
+window.osdZoomIn = osdZoomIn;
+window.osdZoomOut = osdZoomOut;
+window.osdRotateCW = osdRotateCW;
+window.osdResetView = osdResetView;
 
 /**
  * Triggers a Matomo virtual page view.

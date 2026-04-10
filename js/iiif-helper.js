@@ -168,10 +168,83 @@ function buildIIIFRegionUrl(iiifBaseUrl, region, maxSize = 1600) {
   return `${base}/${regionStr}/!${maxSize},${maxSize}/0/default.jpg`;
 }
 
+/**
+ * Resolve the IIIF Image Service base URL for a given IIIF URL.
+ * This is the URL that, appended with /info.json, returns the IIIF
+ * Image Information document and can be used as an OpenSeadragon tile source.
+ *
+ * For type === 'image' (or info.json URLs) it simply strips /info.json.
+ * For manifests it fetches the manifest and extracts the image service @id/id.
+ *
+ * Results are cached per input URL.
+ */
+const _serviceUrlCache = {};
+async function resolveIIIFServiceUrl(iiifUrl, type = 'image') {
+  if (!iiifUrl) return null;
+  if (_serviceUrlCache[iiifUrl]) return _serviceUrlCache[iiifUrl];
+
+  try {
+    if (type === 'manifest' || iiifUrl.includes('manifest')) {
+      const resp = await fetch(iiifUrl);
+      const manifest = await resp.json();
+
+      // IIIF v2
+      if (manifest['@type'] === 'sc:Manifest' || manifest.sequences) {
+        const canvas = manifest.sequences?.[0]?.canvases?.[0];
+        const imgResource = canvas?.images?.[0]?.resource;
+        if (imgResource) {
+          const serviceId = imgResource.service?.['@id'] || imgResource.service?.id;
+          if (serviceId) {
+            const url = serviceId.replace(/\/$/, '');
+            _serviceUrlCache[iiifUrl] = url;
+            return url;
+          }
+        }
+      }
+
+      // IIIF v3
+      if (manifest.type === 'Manifest' || manifest.items) {
+        const canvas = manifest.items?.[0];
+        const annoPage = canvas?.items?.[0];
+        const anno = annoPage?.items?.[0];
+        const body = anno?.body;
+        if (body) {
+          const service = Array.isArray(body.service) ? body.service[0] : body.service;
+          const serviceId = service?.id || service?.['@id'];
+          if (serviceId) {
+            const url = serviceId.replace(/\/$/, '');
+            _serviceUrlCache[iiifUrl] = url;
+            return url;
+          }
+        }
+      }
+    }
+
+    // Direct info.json or image type
+    if (iiifUrl.endsWith('info.json') || type === 'image') {
+      const url = iiifUrl.replace(/\/info\.json$/, '');
+      _serviceUrlCache[iiifUrl] = url;
+      return url;
+    }
+
+    return null;
+  } catch (e) {
+    console.warn('IIIF service URL resolve error:', e);
+    // Fallback for info.json URLs
+    if (iiifUrl.endsWith('info.json')) {
+      const url = iiifUrl.replace('/info.json', '');
+      _serviceUrlCache[iiifUrl] = url;
+      return url;
+    }
+    return null;
+  }
+}
+
 window.IIIFHelper = {
   resolveIIIFImageUrl,
   resolveIIIFFullImageUrl,
   extractIIIFBaseUrl,
   fetchIIIFOriginalDimensions,
   buildIIIFRegionUrl,
+  resolveIIIFServiceUrl,
 };

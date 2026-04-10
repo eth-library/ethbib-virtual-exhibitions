@@ -92,6 +92,22 @@
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
 
+            <!-- OSD IMAGE TOOLBAR -->
+            <div class="osd-toolbar" id="osdToolbar" style="display:none">
+                <button class="osd-tb-btn" title="Hineinzoomen (+)" onclick="osdZoomIn()">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <button class="osd-tb-btn" title="Herauszoomen (-)" onclick="osdZoomOut()">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <button class="osd-tb-btn" title="90° drehen (R)" onclick="osdRotateCW()">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button class="osd-tb-btn" title="Ansicht zurücksetzen (0)" onclick="osdResetView()">
+                    <i class="fa-solid fa-arrows-to-dot"></i>
+                </button>
+            </div>
+
             <!-- SLIDE COUNTER -->
             <div class="slide-counter" id="slideCounter">1 / 1</div>
 
@@ -114,6 +130,7 @@
                         </button>
                         <p class="region-zoom-hint" id="regionZoomHint"></p>
                     </div>
+
                 </div>
                 <!-- ETH Logo footer -->
                 <div class="panel-logo-footer">
@@ -259,6 +276,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/openseadragon@5.0/build/openseadragon/openseadragon.min.js"></script>
     <script src="js/iiif-helper.js"></script>
     <script type="module" src="js/viewer.js"></script>
 </body>
