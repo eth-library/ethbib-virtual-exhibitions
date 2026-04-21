@@ -340,6 +340,24 @@
               <label>Button-Beschriftung</label>
               <input type="text" name="region_label" placeholder="z.B. Detail ansehen" />
             </div>
+            <div class="form-group toggle-group" style="flex:1 1 200px;max-width:280px;padding-top:2px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <label style="white-space:nowrap;margin-bottom:0;">Automatisch einzoomen</label>
+                <div class="tooltip-container">
+                  <i class="fa-solid fa-circle-info info-icon" style="font-size:11px;"></i>
+                  <div class="tooltip-content">
+                    Wenn aktiviert, wird beim Anzeigen des Bildes im Viewer automatisch und langsam in den definierten Bildausschnitt gezoomt. Der Benutzer kann mit dem Button wieder rauszoomen.
+                  </div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" name="region_auto_zoom" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row two-col">
+            <div class="form-group"></div>
             <div class="form-group" style="justify-content:flex-end;padding-top:6px;">
               <button type="button" class="btn btn-outline btn-sm" onclick="previewRegion(this)">
                 <i class="fa-solid fa-crop-simple"></i> Region vorschauen
