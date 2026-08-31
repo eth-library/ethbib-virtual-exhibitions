@@ -68,17 +68,20 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 
-# Exhibition data migration script (contains SQL data)
-migrate.html
-
 # Local backups and configs
 *-debug.log
 
 # IDE and OS files
 .vscode/
 .idea/
-.agents/
 .windsurf/
 .DS_Store
 Thumbs.db
 skills-lock.json
+
+# NOTE: .claude/skills/ and .mcp.json are intentionally COMMITTED so a fresh
+# clone comes with the agent tooling already set up. Setup and architecture are
+# documented on the internal Confluence page "Virtual IIIF Exhibitions".
+
+# Draft of that Confluence page. Internal detail, not for the public repo.
+TECHNICAL-OVERVIEW.md

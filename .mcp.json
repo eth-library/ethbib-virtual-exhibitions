@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "cmd",
+      "args": ["/c", "firebase", "mcp"]
+    }
+  }
+}
