@@ -410,6 +410,11 @@ async function goToSlide(index, animClass = 'anim-zoom-in') {
 
   State.transitioning = false;
 
+  // ── Auto-Zoom in Region (if enabled) ──
+  if (State.regionZoomData?.autoZoom && !State.regionZoomed) {
+    _triggerAutoRegionZoom();
+  }
+
   // Update overview active state
   updateOverviewActive(index);
 
@@ -479,6 +484,7 @@ function updateInfoPanel(index) {
       w: Number(item.region_w),
       h: Number(item.region_h),
       pct: !!item.region_pct,
+      autoZoom: !!item.region_auto_zoom,
       originalW: null, // filled async below
       originalH: null,
     };
@@ -658,6 +664,63 @@ function _resetRegionZoom(animated = true) {
     document.getElementById('regionZoomLabel').textContent =
       (item && item.region_label) ? item.region_label : 'Detail ansehen';
   }
+}
+
+// ─── Auto Region Zoom (slow animated zoom on slide entry) ──────
+function _triggerAutoRegionZoom() {
+  // Short delay so the user sees the full image first
+  setTimeout(() => {
+    if (!State.regionZoomData?.autoZoom || State.regionZoomed) return;
+
+    // OSD path (preferred – allows smooth animated zoom)
+    if (State.osdViewer) {
+      const viewer = State.osdViewer;
+      const tiledImage = viewer.world.getItemAt(0);
+      if (!tiledImage) return;
+
+      const d = State.regionZoomData;
+      const imgSize = tiledImage.getContentSize();
+      let rx, ry, rw, rh;
+      if (d.pct) {
+        rx = (d.x / 100) * imgSize.x;
+        ry = (d.y / 100) * imgSize.y;
+        rw = (d.w / 100) * imgSize.x;
+        rh = (d.h / 100) * imgSize.y;
+      } else {
+        rx = d.x; ry = d.y; rw = d.w; rh = d.h;
+      }
+
+      const rect = tiledImage.imageToViewportRectangle(rx, ry, rw, rh);
+
+      // Slow zoom – temporarily increase animation time
+      const origAnim = viewer.viewport.centerSpringX.animationTime;
+      viewer.viewport.centerSpringX.animationTime = 2.5;
+      viewer.viewport.centerSpringY.animationTime = 2.5;
+      viewer.viewport.zoomSpring.animationTime = 2.5;
+
+      viewer.viewport.fitBounds(rect, false);
+
+      // Restore animation time after completion
+      setTimeout(() => {
+        if (State.osdViewer) {
+          viewer.viewport.centerSpringX.animationTime = origAnim;
+          viewer.viewport.centerSpringY.animationTime = origAnim;
+          viewer.viewport.zoomSpring.animationTime = origAnim;
+        }
+      }, 3000);
+
+      State.regionZoomed = true;
+      const btn = document.getElementById('regionZoomBtn');
+      const icon = document.getElementById('regionZoomIcon');
+      btn.classList.add('zoomed-in');
+      icon.className = 'fa-solid fa-magnifying-glass-minus';
+      document.getElementById('regionZoomLabel').textContent = 'Zurück zur Gesamtansicht';
+      return;
+    }
+
+    // Fallback: use standard region zoom (non-OSD)
+    _applyRegionZoom();
+  }, 1000);
 }
 
 // ─── OpenSeadragon Lifecycle ────────────────────────────────────

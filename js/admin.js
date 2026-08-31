@@ -348,6 +348,7 @@ function collectItemData(row, exhibitionId, order) {
     region_h: parseFloat(get('region_h')) || null,
     region_pct: !!(row.querySelector('[name="region_pct"]')?.checked),
     region_label: get('region_label'),
+    region_auto_zoom: !!(row.querySelector('[name="region_auto_zoom"]')?.checked),
     custom_label_1: get('custom_label_1'),
     custom_value_1: get('custom_value_1'),
     custom_label_2: get('custom_label_2'),
@@ -424,8 +425,10 @@ function addItemRow(data = null) {
     setVal('region_label', data.region_label);
     const regionPctEl = row.querySelector('[name="region_pct"]');
     if (regionPctEl) regionPctEl.checked = !!data.region_pct;
+    const regionAutoZoomEl = row.querySelector('[name="region_auto_zoom"]');
+    if (regionAutoZoomEl) regionAutoZoomEl.checked = !!data.region_auto_zoom;
     // Auto-open region section if region is set
-    if (data.region_w || data.region_h) {
+    if (data.region_w || data.region_h || data.region_auto_zoom) {
       const regionDetails = row.querySelector('.region-fields');
       if (regionDetails) regionDetails.open = true;
     }
