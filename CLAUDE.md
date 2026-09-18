@@ -151,6 +151,11 @@ navigates via the History API — no page reloads, no hash routes.
 
 - **Hosting serves the working directory, not the repo.** `public: "."` means gitignored files are
   deployed too, and deleting a file locally only removes it from the live site on the next
-  `firebase deploy --only hosting`. `.gitignore` says nothing about what is public.
-- `firestore-debug.log` and `TECHNICAL-OVERVIEW.md` are gitignored — ignore them when reasoning
-  about the project.
+  `firebase deploy --only hosting`. `.gitignore` says nothing about what is public — this already
+  leaked `TECHNICAL-OVERVIEW.md`, `CLAUDE.md`, `firestore.rules` and `firestore-debug.log` onto the
+  live site once. `hosting.ignore` in `firebase.json` now excludes `**/*.md`, `**/*.log`, `docs/**`,
+  `emulator-data/**` and the Firestore config files. **Any new non-app file in the project root is
+  public by default** — check that it matches an ignore pattern before the next deploy.
+- Developer documentation lives in `docs/`. `docs/EMULATOR-PERSISTENCE.md` is committed;
+  `docs/TECHNICAL-OVERVIEW.md` is the gitignored draft of the internal Confluence page, as is
+  `firestore-debug.log` — ignore both when reasoning about the project.

@@ -312,10 +312,21 @@ alias fbe='firebase emulators:start --import=./emulator-data --export-on-exit'
 `admins` document ID and local Auth accounts — personal data that does not belong in a public
 repository. Every developer creates their own seed once.
 
-Also worth knowing for this project: Hosting is configured with `"public": "."`, so **everything in
-the working directory gets deployed**, gitignored files included. `emulator-data/` is not currently
-excluded from deployment — it is harmless (a binary blob with no secrets beyond a test email) but if
-that bothers you, add it to the `hosting.ignore` array in `firebase.json`.
+## Keep the export off the live site too
+
+This is a separate concern from Git, and it has bitten this project once already.
+
+Hosting is configured with `"public": "."`, so **everything in the working directory gets deployed**,
+gitignored files included. `.gitignore` has no influence whatsoever on what ends up public. In
+September 2026 this put `TECHNICAL-OVERVIEW.md`, `CLAUDE.md`, `firestore.rules` and
+`firestore-debug.log` on the live site, readable by anyone who guessed the filename.
+
+The `hosting.ignore` array in `firebase.json` now excludes `**/*.md`, `**/*.log`, `docs/**`,
+`emulator-data/**` and the Firestore config files.
+
+**Whenever you add a non-application file to the project root, check that it matches one of those
+patterns before the next deploy.** The rule of thumb: if it is not something a visitor's browser
+needs, it belongs in `hosting.ignore`.
 
 ---
 

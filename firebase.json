@@ -10,7 +10,13 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/*.md",
+      "**/*.log",
+      "docs/**",
+      "emulator-data/**",
+      "firestore.rules",
+      "firestore.indexes.json"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
