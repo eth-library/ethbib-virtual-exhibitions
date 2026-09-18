@@ -96,14 +96,17 @@ CDN URLs in `index.html` and `admin.html`.
 ## Running and verifying locally
 
 ```bash
-firebase emulators:start
+firebase emulators:start --import=./emulator-data --export-on-exit
 ```
 - App: `http://localhost:5000` · Emulator UI: `http://localhost:4000`
 - Requires Java 11+ for the Firestore emulator.
 - `js/firebase-config.js` auto-switches to the emulators on `localhost` / `127.0.0.1`. Nothing to
   toggle by hand.
-- Test data (an `admins/<email>` doc, an exhibition, items) has to be created in the Emulator UI —
-  it does not carry over from production.
+- `./emulator-data` is a local, gitignored seed (admin doc, exhibitions, items, `settings/global`).
+  It is created once per developer — production data is never copied in. If it is missing, say so
+  and point at the seeding instructions rather than inventing test data.
+- **Only `Ctrl+C` exports.** A killed terminal loses everything since the last clean shutdown, so
+  warn before suggesting anything that ends the emulator process abruptly.
 
 ## Deployment
 

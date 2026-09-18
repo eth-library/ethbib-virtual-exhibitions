@@ -71,6 +71,10 @@ node_modules/
 # Local backups and configs
 *-debug.log
 
+# Emulator seed data. Created per developer via --export-on-exit; contains an
+# email address as admins doc ID and local Auth accounts, so it stays local.
+emulator-data/
+
 # IDE and OS files
 .vscode/
 .idea/
