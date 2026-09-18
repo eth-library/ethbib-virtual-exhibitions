@@ -99,7 +99,9 @@ CDN URLs in `index.html` and `admin.html`.
 firebase emulators:start --import=./emulator-data --export-on-exit
 ```
 - App: `http://localhost:5000` · Emulator UI: `http://localhost:4000`
-- Requires Java 11+ for the Firestore emulator.
+- Requires **Java 21+** for the Firestore emulator, resolved from `java` on `PATH` — `JAVA_HOME` is
+  ignored. An older JRE earlier on `PATH` makes the emulator refuse to start even when a modern JDK
+  is installed.
 - `js/firebase-config.js` auto-switches to the emulators on `localhost` / `127.0.0.1`. Nothing to
   toggle by hand.
 - `./emulator-data` is a local, gitignored seed (admin doc, exhibitions, items, `settings/global`).

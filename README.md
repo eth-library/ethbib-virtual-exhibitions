@@ -120,7 +120,7 @@ The Firebase Emulator Suite allows you to develop and test your application loca
 To run the Firebase emulators, you need the following installed:
 1. **Node.js**: (Installed in Step 2).
 2. **Firebase CLI**: `npm install -g firebase-tools` (Installed in Step 2).
-3. **Java Runtime Environment (JRE)**: Version 11 or higher is **required** to run the Cloud Firestore emulator. You can download it from [Adoptium](https://adoptium.net/) or use your package manager.
+3. **Java JDK 21 or newer**: **required** to run the Cloud Firestore emulator (a JRE is not sufficient). Download it from [Adoptium](https://adoptium.net/) or use your package manager. Note that the Firebase CLI resolves `java` from your `PATH` and ignores `JAVA_HOME` — verify with `java -version` that the version reported is 21 or higher.
 
 #### 🚀 Running the Emulators
 1. Start the emulator suite from the project root:
